@@ -1,0 +1,292 @@
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .input-container {
+            max-width: 400px;
+            margin: 20px auto;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .submit-button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .submit-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="input-container">
+        <input type="text"
+               id="input1"
+               placeholder="Skill"
+               data-cav-group="Custom"
+               data-cav-name="skill"
+               class="input-field">
+
+        <input type="text"
+               id="input2"
+               placeholder="Name"
+               data-cav-group="Custom"
+               data-cav-name="Name"
+               class="input-field">
+
+        <input type="text"
+               id="input3"
+               placeholder="Case"
+               data-cav-group="Custom"
+               data-cav-name="case"
+               class="input-field">
+
+        <button type="submit"
+                onclick="handleFormSubmit()"
+                class="submit-button">Submit</button>
+    </div>
+</body>
+
+<script>
+
+    let _five9Metadata;
+    let _activeCall;
+    let _cavs;
+
+    async function getFive9MetaData() {
+        try {
+            console.info("Script: >>> getFive9MetaData");
+
+            var response = await fetch("https://app.five9.com/appsvcs/rs/svc/auth/metadata", {
+                cache: "no-cache",
+                credentials: "include", // include, same-origin, *omit
+                mode: "cors", // no-cors, cors, *same-origin.
+            })
+
+            console.info(`Script: getFive9MetaData returned status ${response.status}`);
+
+            let f9md;
+            if (response.status === 200) {
+                f9md = await response.json();
+            } else {
+                throw `getFive9MetaData returned status ${response.status}`;
+            }
+            _five9Metadata = f9md;
+
+        } catch (err) {
+            console.error("Script: getFive9MetaData failed: " + err);
+            throw err;
+        }
+
+    }
+
+    async function getCallData() {
+        console.info("Script: >>> getCallData");
+        try {
+
+            let response = await fetch(
+                "https://" +
+                _five9Metadata.metadata.dataCenters[0].apiUrls[0].host +
+                "/appsvcs/rs/svc/agents/" +
+                _five9Metadata.userId +
+                "/interactions/calls",
+                {
+                    method: "GET",
+                    cache: "no-cache",
+                    credentials: "include", // include, same-origin, *omit
+                    mode: "cors", // no-cors, cors, *same-origin.
+                })
+
+            let calls = await response.json();
+
+            console.info(`Script: Got Calls`);
+            console.info(calls);
+
+            _activeCall = null;
+
+            if (Array.isArray(calls) && calls.length > 0) {
+                _activeCall = calls[0];
+            }
+
+            if (_activeCall) {
+                console.info(`Script: Found active call`);
+                console.dir(_activeCall);
+            } else {
+                throw "Script: No active call found."
+            }
+
+        } catch (err) {
+            console.error("Script: getCallData failed: " + err);
+            throw err;
+        }
+    }
+
+    async function getCAVs() {
+        try {
+            console.info("Script: >>> getCAVs");
+            let response = await fetch(
+                "https://" +
+                _five9Metadata.metadata.dataCenters[0].apiUrls[0].host +
+                "/appsvcs/rs/svc/orgs/" +
+                _five9Metadata.orgId +
+                "/call_variables",
+                {
+                    cache: "no-cache",
+                    credentials: "include", // include, same-origin, *omit
+                    mode: "cors", // no-cors, cors, *same-origin.
+                }
+            )
+
+            let cavs = await response.json();
+
+            console.info("Script: Got CAVs");
+            console.dir(cavs);
+
+            _cavs = cavs;
+
+        } catch (err) {
+            console.error("Script: getCavs failed: " + err);
+            resultEvent("Unable to fetch call variables", true);
+        }
+    }
+
+    function getCavByName(cavList, group, name) {
+        return cavList.find(cav => cav.group === group && cav.name === name) || null;
+    }
+
+    async function setCAV(id, value) {
+        try {
+
+            var cavPayload = {};
+            cavPayload[id] = value;
+            var bodyString = JSON.stringify(cavPayload);
+
+            console.info("Script: >>> setCav");
+            console.info(bodyString)
+
+            let response = await fetch(
+                "https://" +
+                _five9Metadata.metadata.dataCenters[0].apiUrls[0].host +
+                "/appsvcs/rs/svc/agents/" +
+                _five9Metadata.userId +
+                "/interactions/calls/" +
+                _activeCall.id +
+                "/variables_2",
+                {
+                    method: "PUT",
+                    cache: "no-cache",
+                    credentials: "include", // include, same-origin, *omit
+                    mode: "cors", // no-cors, cors, *same-origin.
+                    headers: {
+                        "Content-Type": "application/json; charset=utf-8",
+                    },
+                    body: bodyString
+                }
+            )
+
+            let setCavResp = await response.json();
+
+            console.info("Script: Set CAVs");
+            console.dir(setCavResp);
+
+            return setCavResp;
+
+
+        } catch (err) {
+            console.error("Abbvie Script: setCAV failed: " + err);
+        }
+
+    }
+
+    async function handleFormSubmit() {
+        try {
+            await getFive9MetaData();
+            await getCallData();
+            await getCAVs();
+
+            if (!_activeCall) {
+                await Swal.fire({
+                    title: 'Error!',
+                    text: 'No active call found',
+                    icon: 'error',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+                return;
+            }
+
+            const inputs = document.querySelectorAll('input[data-cav-group][data-cav-name]');
+            let updatedCount = 0;
+
+            for (const input of inputs) {
+                const group = input.dataset.cavGroup;
+                const name = input.dataset.cavName;
+                const value = input.value;
+
+                if (value) {
+                    const cav = getCavByName(_cavs, group, name);
+                    if (cav) {
+                        await setCAV(cav.id, value);
+                        updatedCount++;
+                    }
+                }
+            }
+
+            if (updatedCount > 0) {
+                await Swal.fire({
+                    title: 'Success!',
+                    text: `Updated ${updatedCount} call variables`,
+                    icon: 'success',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            } else {
+                await Swal.fire({
+                    title: 'Warning',
+                    text: 'No call variables were updated',
+                    icon: 'warning',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            }
+
+        } catch (ex) {
+            console.error('Script:', ex);
+            await Swal.fire({
+                title: 'Error!',
+                text: 'Failed to update call variables',
+                icon: 'error',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000
+            });
+        }
+    }
+
+</script>
+</html>

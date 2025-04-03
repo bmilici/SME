@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Field Sync</title>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <style>
+      .input-container {
+        max-width: 400px;
+        margin: 20px auto;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .input-field {
+        width: 100%;
+        padding: 8px;
+        margin: 10px 0;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+
+      .submit-button {
+        width: 100%;
+        padding: 10px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 10px;
+      }
+
+      .submit-button:hover {
+        background-color: #45a049;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="input-container">
+      <div class="script-input">
+        <!-- Label on Script-tab input must match label on Interaction-tab input -->
+
+        <label for="firstName">First Name</label>
+        <input type="text" id="firstName" placeholder="First Name" class="input-field" />
+
+        <label for="lastName">Last Name</label>
+        <input type="text" id="lastName" placeholder="Last Name" class="input-field" />
+
+        <label for="altPhone1">Alt Phone 1</label>
+        <input type="text" id="altPhone1" placeholder="Alt Phone 1" class="input-field" />
+
+        <label for="altPhone2">Alt Phone 2</label>
+        <input type="text" id="altPhone2" placeholder="Alt Phone 2" class="input-field" />
+
+        <label for="street">Street</label>
+        <input type="text" id="street" placeholder="Street" class="input-field" />
+
+        <label for="state">State</label>
+        <input type="text" id="state" placeholder="State" class="input-field" />
+
+        <label for="county">County</label>
+        <input type="text" id="county" placeholder="County" class="input-field" />
+
+        <label for="city">City</label>
+        <input type="text" id="city" placeholder="City" class="input-field" />
+
+        <label for="zip">Zip</label>
+        <input type="text" id="zip" placeholder="Zip" class="input-field" />
+
+        <label for="dob">DOB</label>
+        <input type="text" id="dob" placeholder="DOB" class="input-field" />
+
+        <label for="permissionToContact">PermissionToContact</label>
+        <input
+          type="text"
+          id="permissionToContact"
+          placeholder="Permission To Contact"
+          class="input-field"
+        />
+      </div>
+    </div>
+
+    <script>
+      const fieldsToSync = [
+        "First Name",
+        "Last Name",
+        "Alt Phone 1",
+        "Alt Phone 2",
+        "Street",
+        "State",
+        "County",
+        "City",
+        "Zip",
+        "DOB",
+        "PermissionToContact",
+      ];
+
+      function debounce(fn, delay) {
+        let timer = null;
+        return function (...args) {
+          clearTimeout(timer);
+          timer = setTimeout(() => fn.apply(this, args), delay);
+        };
+      }
+
+      function getInteractionTabInput(labelName) {
+        console.log(`#### Searching for interaction input with label: "${labelName}"`);
+
+        const parentElement = window.parent
+          .$("[data-f9-template='contact-form-input']")
+          .filter(function () {
+            return $(this).text().trim().includes(labelName);
+          });
+
+        if (parentElement.length > 0) {
+          const valueNode = parentElement.find("#ContactFormInput-value-node");
+          const input = valueNode.find("input");
+          if (input.length > 0) {
+            console.log(`#### Found standard input for "${labelName}"`);
+            return input;
+          }
+        }
+
+        const altInput = window.parent.document.querySelector(`input[aria-label="${labelName}"]`);
+        if (altInput) {
+          console.log(`#### Found aria-label input for "${labelName}"`);
+          return window.parent.$(altInput);
+        }
+
+        console.log(`#### Could not find input for "${labelName}"`);
+        return null;
+      }
+
+      function getScriptTabInput(labelName) {
+        const container = document.querySelector(".script-input");
+        const labels = container.querySelectorAll("label");
+
+        for (let label of labels) {
+          if (label.textContent.trim() === labelName) {
+            return label.nextElementSibling;
+          }
+        }
+        return null;
+      }
+
+      function syncFields(labelName) {
+        const interactionInput = getInteractionTabInput(labelName);
+        const scriptInput = getScriptTabInput(labelName);
+
+        if (!interactionInput || !scriptInput) {
+          console.log(`#### Failed to sync ${labelName} - missing elements`, {
+            hasInteractionInput: !!interactionInput,
+            hasScriptInput: !!scriptInput,
+          });
+          return;
+        }
+
+        const initialValue = interactionInput.val();
+        console.log(`#### Initial value for ${labelName}:`, initialValue);
+
+        if (initialValue && scriptInput.value !== initialValue) {
+          scriptInput.value = initialValue;
+          console.log(`#### Initialized Script Tab with Interaction Tab value: ${initialValue}`);
+        }
+
+        if (labelName === "Alt Phone 1" || labelName === "Alt Phone 2") {
+          scriptInput.addEventListener("blur", (event) => {
+            const newValue = event.target.value.trim();
+            console.log(`#### [Alt Phone] blur fired, syncing: "${newValue}"`);
+
+            if (interactionInput.val() !== newValue) {
+              interactionInput.val(newValue);
+              const nativeInput = interactionInput.get(0);
+              nativeInput.dispatchEvent(new Event("input", { bubbles: true }));
+              nativeInput.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+          });
+        } else {
+          scriptInput.addEventListener("input", (event) => {
+            const newValue = event.target.value;
+            console.log(`#### Script input for ${labelName}, new value: "${newValue}"`);
+
+            if (interactionInput.val() !== newValue) {
+              console.log(`#### Updating interaction tab to: "${newValue}"`);
+              interactionInput.val(newValue);
+              const nativeInput = interactionInput.get(0);
+              nativeInput.dispatchEvent(new Event("input", { bubbles: true }));
+              nativeInput.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+          });
+        }
+
+        interactionInput.on("input.sync change.sync", function (e) {
+          console.log(`#### Interaction input event for ${labelName}:`, e.type);
+          const newValue = $(this).val();
+          if (scriptInput.value !== newValue) {
+            console.log(`#### Updating script tab to: ${newValue}`);
+            scriptInput.value = newValue;
+          }
+        });
+      }
+
+      function initializeSync() {
+        console.log("#### Initializing sync for fields:", fieldsToSync);
+        fieldsToSync.forEach(syncFields);
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        initializeSync();
+
+        const parentDocument = window.parent.document;
+        const targetNode = parentDocument.body;
+
+        const debouncedInitializeSync = debounce(() => {
+          console.log("#### Debounced sync initializing...");
+          initializeSync();
+        }, 300);
+
+        const observer = new MutationObserver((mutationsList) => {
+          for (let mutation of mutationsList) {
+            if (
+              mutation.type === "childList" &&
+              $(mutation.target).find("[data-f9-template='contact-form-input']").length > 0
+            ) {
+              console.log("#### Detected DOM update from Five9");
+              debouncedInitializeSync();
+              break;
+            }
+          }
+        });
+
+        observer.observe(targetNode, {
+          childList: true,
+          subtree: true,
+        });
+
+        console.log("#### MutationObserver attached");
+      });
+    </script>
+  </body>
+</html>
