@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Field Sync</title>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <style>
+      .input-container {
+        max-width: 400px;
+        margin: 20px auto;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .input-field {
+        width: 100%;
+        padding: 8px;
+        margin: 10px 0;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+
+      .submit-button {
+        width: 100%;
+        padding: 10px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 10px;
+      }
+
+      .submit-button:hover {
+        background-color: #45a049;
+      }
+
+    </style>
+
+<style>
+    .input-row-container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 40px;
+      max-width: 1000px;
+      margin: 20px auto;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+  
+    .input-column,
+    .dropdown-column {
+      flex: 1;
+    }
+  
+    .dropdown-column {
+      max-width: 300px;
+    }
+  </style>
+  
+  </head>
+
+  <body>
+    <div class="input-row-container">
+        <!-- Left: Label on Script-tab input must match label on Interaction-tab input -->
+        <div class="input-column script-input">
+          <label for="firstName">First Name</label>
+          <input type="text" id="firstName" placeholder="First Name" class="input-field" />
+      
+          <label for="lastName">Last Name</label>
+          <input type="text" id="lastName" placeholder="Last Name" class="input-field" />
+      
+          <label for="altPhone1">Alt Phone 1</label>
+          <input type="text" id="altPhone1" placeholder="Alt Phone 1" class="input-field" />
+      
+          <label for="altPhone2">Alt Phone 2</label>
+          <input type="text" id="altPhone2" placeholder="Alt Phone 2" class="input-field" />
+      
+          <label for="street">Street</label>
+          <input type="text" id="street" placeholder="Street" class="input-field" />
+      
+          <label for="state">State</label>
+          <input type="text" id="state" placeholder="State" class="input-field" />
+      
+          <label for="county">County</label>
+          <input type="text" id="county" placeholder="County" class="input-field" />
+      
+          <label for="city">City</label>
+          <input type="text" id="city" placeholder="City" class="input-field" />
+      
+          <label for="zip">Zip</label>
+          <input type="text" id="zip" placeholder="Zip" class="input-field" />
+      
+          <label for="dob">DOB</label>
+          <input type="text" id="dob" placeholder="DOB" class="input-field" />
+      
+          <label for="permissionToContact">Permission To Contact</label>
+          <input type="text" id="permissionToContact" placeholder="Permission To Contact" class="input-field" />
+        </div>
+      
+        <!-- Right: Disposition Dropdown -->
+        <div class="dropdown-column">
+          <label for="dispositionDropdown">Select a Disposition:</label>
+          <select id="dispositionDropdown" class="input-field">
+            <option>Loading...</option>
+          </select>
+        </div>
+      </div>
+      
+      
+
+    <script>
+      const fieldsToSync = [
+        "First Name",
+        "Last Name",
+        "Alt Phone 1",
+        "Alt Phone 2",
+        "Street",
+        "State",
+        "County",
+        "City",
+        "Zip",
+        "DOB",
+        "Permission To Contact",
+      ];
+
+      // Returns a debounced version of a function that delays its execution until after a pause in calls.
+      function debounce(fn, delay) {
+        let timer = null;
+        return function (...args) {
+          clearTimeout(timer);
+          timer = setTimeout(() => fn.apply(this, args), delay);
+        };
+      }
+
+      // Fetches Five9 session metadata using an authenticated request and stores it in a global variable.
+      async function getFive9MetaData() {
+            try {
+                console.info("Script: >>> getFive9MetaData");
+                const response = await fetch("https://app.five9.com/appsvcs/rs/svc/auth/metadata", {
+                    cache: "no-cache",
+                    credentials: "include",
+                    mode: "cors"
+                });
+
+                if (response.status === 200) {
+                    _five9Metadata = await response.json();
+                } else {
+                    throw new Error(`getFive9MetaData returned status ${response.status}`);
+                }
+            } catch (err) {
+                console.error("getFive9MetaData failed:", err);
+            }
+        }
+
+      // Fetches the current agent’s active call data from Five9 using metadata and stores the first call in `_activeCall`.
+      async function getCallData() {
+            try {
+                console.info("Script: >>> getCallData");
+
+                const response = await fetch(
+                    "https://" +
+                    _five9Metadata.metadata.dataCenters[0].apiUrls[0].host +
+                    "/appsvcs/rs/svc/agents/" +
+                    _five9Metadata.userId +
+                    "/interactions/calls",
+                    {
+                        method: "GET",
+                        cache: "no-cache",
+                        credentials: "include",
+                        mode: "cors"
+                    }
+                );
+
+                const calls = await response.json();
+                _activeCall = Array.isArray(calls) && calls.length > 0 ? calls[0] : null;
+
+                if (!_activeCall) {
+                    throw new Error("No active call found.");
+                }
+
+                console.info("Found active call:", _activeCall);
+
+            } catch (err) {
+                console.error("getCallData failed:", err);
+            }
+        }
+
+      // Locates and returns an input element from the parent frame that matches a given label name.
+      function getInteractionTabInput(labelName) {
+        console.log(`#### Searching for interaction input with label: "${labelName}"`);
+
+        const parentElement = window.parent
+          .$("[data-f9-template='contact-form-input']")
+          .filter(function () {
+            return $(this).text().trim().includes(labelName);
+          });
+
+        if (parentElement.length > 0) {
+          const valueNode = parentElement.find("#ContactFormInput-value-node");
+          const input = valueNode.find("input");
+          if (input.length > 0) {
+            console.log(`#### Found standard input for "${labelName}"`);
+            return input;
+          }
+        }
+
+        const altInput = window.parent.document.querySelector(`input[aria-label="${labelName}"]`);
+        if (altInput) {
+          console.log(`#### Found aria-label input for "${labelName}"`);
+          return window.parent.$(altInput);
+        }
+
+        console.log(`#### Could not find input for "${labelName}"`);
+        return null;
+      }
+
+      // Finds and returns the input field on the Script tab that matches a given label name.
+      function getScriptTabInput(labelName) {
+        const container = document.querySelector(".script-input");
+        const labels = container.querySelectorAll("label");
+
+        for (let label of labels) {
+          if (label.textContent.trim() === labelName) {
+            return label.nextElementSibling;
+          }
+        }
+        return null;
+      }
+
+      // Sets up two-way syncing between a Script tab input and its matching Interaction tab input based on label name.
+      function syncFields(labelName) {
+        const interactionInput = getInteractionTabInput(labelName);
+        const scriptInput = getScriptTabInput(labelName);
+
+        if (!interactionInput || !scriptInput) {
+          console.log(`#### Failed to sync ${labelName} - missing elements`, {
+            hasInteractionInput: !!interactionInput,
+            hasScriptInput: !!scriptInput,
+          });
+          return;
+        }
+
+        const initialValue = interactionInput.val();
+        console.log(`#### Initial value for ${labelName}:`, initialValue);
+
+        if (initialValue && scriptInput.value !== initialValue) {
+          scriptInput.value = initialValue;
+          console.log(`#### Initialized Script Tab with Interaction Tab value: ${initialValue}`);
+        }
+
+        if (labelName === "Alt Phone 1" || labelName === "Alt Phone 2") {
+          scriptInput.addEventListener("blur", (event) => {
+            const newValue = event.target.value.trim();
+            console.log(`#### [Alt Phone] blur fired, syncing: "${newValue}"`);
+
+            if (interactionInput.val() !== newValue) {
+              interactionInput.val(newValue);
+              const nativeInput = interactionInput.get(0);
+              nativeInput.dispatchEvent(new Event("input", { bubbles: true }));
+              nativeInput.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+          });
+        } else {
+          scriptInput.addEventListener("input", (event) => {
+            const newValue = event.target.value;
+            console.log(`#### Script input for ${labelName}, new value: "${newValue}"`);
+
+            if (interactionInput.val() !== newValue) {
+              console.log(`#### Updating interaction tab to: "${newValue}"`);
+              interactionInput.val(newValue);
+              const nativeInput = interactionInput.get(0);
+              nativeInput.dispatchEvent(new Event("input", { bubbles: true }));
+              nativeInput.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+          });
+        }
+
+        interactionInput.on("input.sync change.sync", function (e) {
+          console.log(`#### Interaction input event for ${labelName}:`, e.type);
+          const newValue = $(this).val();
+          if (scriptInput.value !== newValue) {
+            console.log(`#### Updating script tab to: ${newValue}`);
+            scriptInput.value = newValue;
+          }
+        });
+      }
+
+      // Loops through all configured fields and sets up syncing between Script and Interaction tab inputs.
+      function initializeSync() {
+        console.log("#### Initializing sync for fields:", fieldsToSync);
+        fieldsToSync.forEach(syncFields);
+      }
+
+      // Initializes syncing on DOM load and watches the parent frame for updates, reapplying sync logic as needed.
+      document.addEventListener("DOMContentLoaded", () => {
+        initializeSync();
+
+        const parentDocument = window.parent.document;
+        const targetNode = parentDocument.body;
+
+        const debouncedInitializeSync = debounce(() => {
+          console.log("#### Debounced sync initializing...");
+          initializeSync();
+        }, 300);
+
+        const observer = new MutationObserver((mutationsList) => {
+          for (let mutation of mutationsList) {
+            if (
+              mutation.type === "childList" &&
+              $(mutation.target).find("[data-f9-template='contact-form-input']").length > 0
+            ) {
+              console.log("#### Detected DOM update from Five9");
+              debouncedInitializeSync();
+              break;
+            }
+          }
+        });
+
+        observer.observe(targetNode, {
+          childList: true,
+          subtree: true,
+        });
+
+        console.log("#### MutationObserver attached");
+      });
+    
+      // Retrieves all dispositions for the active call's campaign and stores them in `_dispositionsAll`.
+      async function getDispositions() {
+            try {
+                console.info("Script: >>> getDispositions");
+
+                const url = "https://" +
+                    _five9Metadata.metadata.dataCenters[0].apiUrls[0].host +
+                    "/appsvcs/rs/svc/orgs/" +
+                    _five9Metadata.orgId +
+                    "/campaigns/" +
+                    _activeCall.campaignId +
+                    "/dispositions";
+
+                const response = await fetch(url, {
+                    method: "GET",
+                    cache: "no-cache",
+                    credentials: "include",
+                    mode: "cors",
+                    headers: {
+                        "Content-Type": "application/json; charset=utf-8",
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch dispositions. Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                _dispositionsAll = data.dispositions;
+
+                console.table(_dispositionsAll);
+            } catch (err) {
+                console.error("getDispositions failed:", err);
+            }
+        }
+
+      async function dispositionCall(dispositionId) {
+            try {
+                const callId = _activeCall.id;
+
+                const url = "https://" +
+                    _five9Metadata.metadata.dataCenters[0].apiUrls[0].host +
+                    "/appsvcs/rs/svc/agents/" +
+                    _five9Metadata.userId +
+                    "/interactions/calls/" +
+                    callId +
+                    "/dispose";
+
+                const response = await fetch(url, {
+                    method: "PUT",
+                    cache: "no-cache",
+                    credentials: "include",
+                    mode: "cors",
+                    headers: {
+                        "Content-Type": "application/json; charset=utf-8",
+                    },
+                    body: JSON.stringify({
+                        dispositionId: dispositionId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Disposition failed. Status: ${response.status}`);
+                }
+
+                console.info("✅ Call dispositioned successfully");
+            } catch (err) {
+                console.error("❌ Failed to disposition call:", err);
+            }
+        }
+
+      // Applies the specified disposition to the current active call via a Five9 API request.
+      function populateDropdown() {
+            const dropdown = document.getElementById("dispositionDropdown");
+            dropdown.innerHTML = ''; // Clear previous options
+
+            const activeDispositions = _dispositionsAll.filter(d =>
+                /^\d/.test(String(d.id)) && d.name !== "Abandoned"
+            );
+
+            if (activeDispositions.length === 0) {
+                const option = document.createElement("option");
+                option.textContent = "No active dispositions available";
+                dropdown.appendChild(option);
+                return;
+            }
+
+            const defaultOption = document.createElement("option");
+            defaultOption.textContent = "-- Select Disposition --";
+            defaultOption.disabled = true;
+            defaultOption.selected = true;
+            dropdown.appendChild(defaultOption);
+
+            activeDispositions.forEach(d => {
+                const option = document.createElement("option");
+                option.value = d.id;
+                option.textContent = d.name;
+                dropdown.appendChild(option);
+            });
+
+            // ✅ Add event listener here after options are loaded
+            dropdown.addEventListener("change", function () {
+                const selectedDispositionId = this.value;
+                dispositionCall(selectedDispositionId);
+            });
+        }
+
+       // Immediately runs startup logic to fetch metadata, call info, dispositions, and populate the UI dropdown.
+      (async function init() {
+            await getFive9MetaData();
+            await getCallData();
+            await getDispositions();
+            populateDropdown();
+         })();
+    </script>
+  </body>
+</html>
