@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Five9 Agent Script</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+        <style>
+            .logo {
+                max-height: 3.5rem;
+            }
+            .accordion {
+                --bs-accordion-btn-padding-x: 1rem !important;
+                --bs-accordion-btn-padding-y: .8rem !important;
+                --bs-accordion-body-padding-x: .4rem !important;
+                --bs-accordion-body-padding-y: .8rem !important;
+                --bs-accordion-border-color: none !important;
+            }
+        </style>
+    </head>
+
+    <body class="text-secondary-emphasis">
+
+        <div class="container-fluid">
+
+            <!-- HEADER -->
+            <div class="mt-2 mx-2 d-flex justify-content-between align-items-center">
+                <h1>Inbound call</h1>
+                <img class="logo" src="https://www.five9.com/sites/default/files/2025-02/five9-logo.svg" alt="Five9 Logo">
+            </div>
+            
+            <!-- INTERACTION DETAILS -->
+            <div class="card shadow-sm border border-light-subtle mx-2 mt-2 mb-4">
+                <div class="accordion" id="accordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button text-bg-light fw-medium" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                Interaction details
+                            </button>
+                        </h2>
+                        <div id="collapseOne" class="accordion-collapse collapse show">
+                            <div class="accordion-body">
+                                <div class="container-fluid">
+                                    <dl class="row">
+                                        <dt class="col-sm-3 fw-medium">Interaction type</dt>
+                                        <dd class="col-sm-9 user-select-all">@Call.type_name@</dd>
+                                        <dt class="col-sm-3 fw-medium">Media type</dt>
+                                        <dd class="col-sm-9 user-select-all">@Call.mediatype@</dd>
+                                        <dt class="col-sm-3 fw-medium">Queue time</dt>
+                                        <dd class="col-sm-9 user-select-all">@Call.queue_time@</dd>
+                                        <dt class="col-sm-3 fw-medium">Skill group</dt>
+                                        <dd class="col-sm-9 user-select-all">@Call.skill_name@</dd>
+                                        <dt class="col-sm-3 fw-medium">Dialed number</dt>
+                                        <dd class="col-sm-9 user-select-all">@Call.DNIS@</dd>
+                                        <dt class="col-sm-3 fw-medium">Customer ANI</dt>
+                                        <dd class="col-sm-9 user-select-all">@Call.ANI@</dd>
+                                        <dt class="col-sm-3 fw-medium">Campaign name</dt>
+                                        <dd class="col-sm-9 user-select-all">@Call.campaign_name@</dd>
+                                        <dt class="col-sm-3 fw-medium">Call ID</dt>
+                                        <dd class="col-sm-9 user-select-all">@Call.call_id@</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h4 class="mx-2 pt-2">Transfer to...</h4>
+
+            <div class="card shadow-sm border border-light-subtle mx-2 mt-2 mb-4">
+                <div class="card-header bg-light">
+                    <ul class="nav nav-tabs card-header-tabs" id="tabHeader" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link text-secondary-emphasis active" id="skills-tab" data-bs-toggle="tab" data-bs-target="#skills-tab-pane" type="button" role="tab" aria-controls="skills-tab-pane" aria-selected="true">Skill</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link text-secondary-emphasis" id="campaigns-tab" data-bs-toggle="tab" data-bs-target="#campaigns-tab-pane" type="button" role="tab" aria-controls="campaigns-tab-pane" aria-selected="false">Campaign</button>
+                        </li>
+                        <!-- <li class="nav-item" role="presentation">
+                            <button class="nav-link text-secondary-emphasis" id="agents-tab" data-bs-toggle="tab" data-bs-target="#agents-tab-pane" type="button" role="tab" aria-controls="agents-tab-pane" aria-selected="false">Agent</button>
+                        </li> -->
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link text-secondary-emphasis" id="external-tab" data-bs-toggle="tab" data-bs-target="#external-tab-pane" type="button" role="tab" aria-controls="external-tab-pane" aria-selected="false">External number</button>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="card-body">
+                    <div class="tab-content" id="tabContent">
+
+                        <!-- PANEL: SKILL TRANSFERS -->
+                        <div class="tab-pane fade show active" id="skills-tab-pane" role="tabpanel" aria-labelledby="home-tab" tabindex="0">
+                            <div class="row">
+                                <div class="col">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Skill 1<button type="button" class="btn btn-primary" onclick="transferToSkill(callId, 300000000000001)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Skill 2<button type="button" class="btn btn-primary" onclick="transferToSkill(callId, 300000000000001)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Skill 3<button type="button" class="btn btn-primary" onclick="transferToSkill(callId, 300000000000001)">Transfer</button></li>
+                                    </ul>
+                                </div>
+                                <div class="col">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Skill 4<button type="button" class="btn btn-primary" onclick="transferToSkill(callId, 300000000000001)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Skill 5<button type="button" class="btn btn-primary" onclick="transferToSkill(callId, 300000000000001)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Skill 6<button type="button" class="btn btn-primary" onclick="transferToSkill(callId, 300000000000001)">Transfer</button></li>
+                                    </ul>
+                                </div>
+                                <div class="col">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Skill 7<button type="button" class="btn btn-primary" onclick="transferToSkill(callId, 300000000000001)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Skill 8<button type="button" class="btn btn-primary" onclick="transferToSkill(callId, 300000000000001)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Skill 9<button type="button" class="btn btn-primary" onclick="transferToSkill(callId, 300000000000001)">Transfer</button></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PANEL: CAMPAIGN TRANSFERS -->
+                        <div class="tab-pane fade" id="campaigns-tab-pane" role="tabpanel" aria-labelledby="campaigns-tab" tabindex="0">
+                            <div class="row">
+                                <div class="col">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Campaign 1<button type="button" class="btn btn-primary" onclick="transferToCampaign(callId, 300000000000002)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Campaign 2<button type="button" class="btn btn-primary" onclick="transferToCampaign(callId, 300000000000002)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Campaign 3<button type="button" class="btn btn-primary" onclick="transferToCampaign(callId, 300000000000002)">Transfer</button></li>
+                                    </ul>
+                                </div>
+                                <div class="col">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Campaign 4<button type="button" class="btn btn-primary" onclick="transferToCampaign(callId, 300000000000002)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Campaign 5<button type="button" class="btn btn-primary" onclick="transferToCampaign(callId, 300000000000002)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Campaign 6<button type="button" class="btn btn-primary" onclick="transferToCampaign(callId, 300000000000002)">Transfer</button></li>
+                                    </ul>
+                                </div>
+                                <div class="col">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Campaign 7<button type="button" class="btn btn-primary" onclick="transferToCampaign(callId, 300000000000002)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Campaign 8<button type="button" class="btn btn-primary" onclick="transferToCampaign(callId, 300000000000002)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Campaign 9<button type="button" class="btn btn-primary" onclick="transferToCampaign(callId, 300000000000002)">Transfer</button></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+            
+                        <!-- PANEL: AGENT TRANSFERS -->
+                        <!-- *** DO NOT USE *** - Calls will be parked if destination agent does not answer -->
+                        <!-- <div class="tab-pane fade" id="agents-tab-pane" role="tabpanel" aria-labelledby="agents-tab" tabindex="0">
+                            <div class="row">
+                                <div class="col">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Agent 1<button type="button" class="btn btn-primary" onclick="transferToAgent(callId, 266184)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Agent 2<button type="button" class="btn btn-primary" onclick="transferToAgent(callId, 300000000000002)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Agent 3<button type="button" class="btn btn-primary" onclick="transferToAgent(callId, 17)">Transfer</button></li>
+                                    </ul>
+                                </div>
+                                <div class="col">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Agent 4<button type="button" class="btn btn-primary" onclick="transferToAgent(callId, 300000000000002)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Agent 5<button type="button" class="btn btn-primary" onclick="transferToAgent(callId, 300000000000011)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Agent 6<button type="button" class="btn btn-primary" onclick="transferToAgent(callId, 266184)">Transfer</button></li>
+                                    </ul>
+                                </div>
+                                <div class="col">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Agent 7<button type="button" class="btn btn-primary" onclick="transferToAgent(callId, 17)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Agent 8<button type="button" class="btn btn-primary" onclick="transferToAgent(callId, 266184)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Agent 9<button type="button" class="btn btn-primary" onclick="transferToAgent(callId, 266184)">Transfer</button></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div> -->
+            
+                        <!-- PANEL: EXTERNAL TRANSFERS -->
+                        <div class="tab-pane fade" id="external-tab-pane" role="tabpanel" aria-labelledby="external-tab" tabindex="0">
+                            <div class="row">
+                                <div class="col">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">Surfer Boy Pizza<button type="button" class="btn btn-primary" onclick="transferToExternal(callId, 8054574992)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">US Naval Observatory Master Clock<button type="button" class="btn btn-primary" onclick="transferToExternal(callId, 7195676742)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">MCI Verify<button type="button" class="btn btn-primary" onclick="transferToExternal(callId, 8004444444)">Transfer</button></li>
+                                    </ul>
+                                </div>
+                                <div class="col">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">External 4<button type="button" class="btn btn-primary" onclick="transferToExternal(callId, 8005551212)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">External 5<button type="button" class="btn btn-primary" onclick="transferToExternal(callId, 8005551212)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">External 6<button type="button" class="btn btn-primary" onclick="transferToExternal(callId, 8005551212)">Transfer</button></li>
+                                    </ul>
+                                </div>
+                                <div class="col">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">External 7<button type="button" class="btn btn-primary" onclick="transferToExternal(callId, 8005551212)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">External 8<button type="button" class="btn btn-primary" onclick="transferToExternal(callId, 8005551212)">Transfer</button></li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">External 9<button type="button" class="btn btn-primary" onclick="transferToExternal(callId, 8005551212)">Transfer</button></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+        <script type="text/javascript">
+            var metadata;
+            var callId;
+            var debug = true;
+            var skillName;
+            var skillId;
+
+            $(document).ready(function () {
+                setTimeout(notificationWrapper, 1000);
+            });
+
+            function notificationWrapper() {
+                $.when(getMetaData()).then(
+                    function (status) {
+                        ConsoleWrapper("getMetaData:\n" + JSON.stringify(status));
+                        metadata = status;
+                        $.when(getCalls()).then(
+                            function (status) {
+                                ConsoleWrapper("getCalls:\n" + JSON.stringify(status));
+                                console.log('active call state', status[0]["state"]);
+                                console.log('active call id', status[0]["id"]);
+                                if (status && status.length == 1 && status[0]["state"] === "TALKING") {
+                                    callId = status[0]["id"];
+                                    $.when(getPrompts(callId)).then(
+                                        function (status) {
+                                            ConsoleWrapper("got prompts");
+                                            status.skillPrompts.forEach(function (prompt) {
+                                                if (prompt.name === skillName) {
+                                                    skillId = prompt.id;
+                                                    transferToSkill(callId, skillId);
+                                                }
+                                            });
+                                        }
+                                    );
+                                } else {
+                                    setTimeout(notificationWrapper, 1000);
+                                }
+                            }
+                        );
+                    }
+                );
+            }
+
+            function ConsoleWrapper(message) {
+                if (debug) {
+                    console.log("----------------------------------------------");
+                    console.log(message);
+                    console.log("----------------------------------------------");
+                }
+            }
+
+            function getMetaData() {
+                console.log('custom_script getMetaData()');
+                return $.ajax({
+                    url: 'https://app.five9.com/appsvcs/rs/svc/auth/metadata',
+                    dataType: 'json',
+                    xhrFields: {
+                        withCredentials: true
+                    }
+                });
+            }
+
+            function getCalls() {
+                console.log('custom_script getCalls()');
+                const url = 'https://' + metadata.metadata.dataCenters[0].apiUrls[0].host + '/appsvcs/rs/svc/agents/' + metadata.userId + '/interactions/calls';
+                console.log('custom_script getCalls url', url);
+                return $.ajax({
+                    url: url,
+                    dataType: 'json',
+                    xhrFields: {
+                        withCredentials: true
+                    }
+                });
+            }
+
+            function getPrompts(callId) {
+                console.log('custom_script getPrompts()');
+
+                return $.ajax({
+                    url: 'https://' + metadata.metadata.dataCenters[0].apiUrls[0].host + '/appsvcs/rs/svc/agents/' + metadata.userId + '/interactions/calls/' + callId + '/audio',
+                    dataType: 'json',
+                    xhrFields: {
+                        withCredentials: true
+                    }
+                });
+            }
+
+            function transferToSkill(callId, skillId) {
+                console.log('custom_script transferToSkill()', callId, skillId);
+
+                return $.ajax({
+                    url: 'https://' + metadata.metadata.dataCenters[0].apiUrls[0].host + '/appsvcs/rs/svc/agents/' + metadata.userId + '/interactions/calls/' + callId + '/transfer_to_skill/',
+                    method: 'PUT',
+                    contentType: "application/json",
+                    data: JSON.stringify({
+                        "recordVoicemail": false,
+                        "recordVmImmediately": false,
+                        "skillIds": [skillId],
+                        "timeout": 0,
+                        "warm": false
+                    }),
+                    xhrFields: {
+                        withCredentials: true
+                    }
+                });
+            }
+
+            function transferToCampaign(callId, campaignId) {
+                console.log('custom_script transferToCampaign()', callId, campaignId);
+
+                // /agents/{agentId}/interactions/calls/{callId}/transfer_to_campaign
+                return $.ajax({
+                    url: 'https://' + metadata.metadata.dataCenters[0].apiUrls[0].host + '/appsvcs/rs/svc/agents/' + metadata.userId + '/interactions/calls/' + callId + '/transfer_to_campaign/',
+                    method: 'PUT',
+                    contentType: "application/json",
+                    data: JSON.stringify({
+                        "campaignId": campaignId,
+                        "warm": false
+                    }),
+                    xhrFields: {
+                        withCredentials: true
+                    }
+                });
+            }
+
+            function transferToAgent(callId, agentId) {
+                console.log('custom_script transferToAgent()', callId, agentId);
+
+                // /agents/{agentId}/interactions/calls/{callId}/transfer_to_agent
+                return $.ajax({
+                    url: 'https://' + metadata.metadata.dataCenters[0].apiUrls[0].host + '/appsvcs/rs/svc/agents/' + metadata.userId + '/interactions/calls/' + callId + '/transfer_to_agent/',
+                    method: 'PUT',
+                    contentType: "application/json",
+                    data: JSON.stringify({
+                        "agentId": agentId,
+                        "warm": false
+                    }),
+                    xhrFields: {
+                        withCredentials: true
+                    }
+                });
+            }
+
+            function transferToExternal(callId, phoneNumber) {
+                console.log('custom_script transferToExternal()', callId, phoneNumber);
+
+                // /agents/{agentId}/interactions/calls/{callId}/transfer_to_external_number
+                return $.ajax({
+                    url: 'https://' + metadata.metadata.dataCenters[0].apiUrls[0].host + '/appsvcs/rs/svc/agents/' + metadata.userId + '/interactions/calls/' + callId + '/transfer_to_external_number/',
+                    method: 'PUT',
+                    contentType: "application/json",
+                    data: JSON.stringify({
+                    "destination": {
+                        "number": phoneNumber,
+                        "checkMultipleContacts": false,
+                        "skipDNCCheck": false
+                    }  
+                    }),
+                    xhrFields: {
+                        withCredentials: true
+                    }
+                });
+            }
+        </script>
+
+    </body>
+</html>
